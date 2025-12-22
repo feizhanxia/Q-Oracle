@@ -43,6 +43,7 @@ st.markdown(
   --mist: #96a7bf;
   --halo: #2f435f;
   --pulse: #7fb2ff;
+  color-scheme: dark;
 }
 
 html, body, [data-testid="stAppViewContainer"] {
@@ -64,6 +65,10 @@ html, body, [data-testid="stAppViewContainer"] {
   visibility: hidden;
   height: 0;
   display: none;
+}
+
+button[kind="headerTheme"] {
+  display: none !important;
 }
 
 footer, div[data-testid="stDecoration"], .viewerBadge_container__2QSgA {
