@@ -1,20 +1,33 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 
 import streamlit as st
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from core.casting import cast_hexagram
 from ui.cli import render_hexagram
 
 
 def _load_streamlit_secrets() -> None:
-    if "ANU_API_KEY" in st.secrets:
-        os.environ.setdefault("ANU_API_KEY", st.secrets["ANU_API_KEY"])
-    if "LFDR_URL" in st.secrets:
-        os.environ.setdefault("LFDR_URL", st.secrets["LFDR_URL"])
-    if "ANU_URL" in st.secrets:
-        os.environ.setdefault("ANU_URL", st.secrets["ANU_URL"])
+    try:
+        secrets = st.secrets
+        anu_key = secrets.get("ANU_API_KEY")
+        lfdr_url = secrets.get("LFDR_URL")
+        anu_url = secrets.get("ANU_URL")
+    except Exception:
+        return
+    if anu_key:
+        os.environ.setdefault("ANU_API_KEY", anu_key)
+    if lfdr_url:
+        os.environ.setdefault("LFDR_URL", lfdr_url)
+    if anu_url:
+        os.environ.setdefault("ANU_URL", anu_url)
 
 
 st.set_page_config(page_title="Q-Oracle", page_icon="☯")
