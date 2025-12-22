@@ -61,13 +61,14 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 
 .block-container {
-  padding-top: 2rem;
+  padding: 1.5rem 1.2rem 2rem 1.2rem;
+  max-width: 920px;
 }
 
 .q-title {
   font-family: 'Cinzel', serif;
   letter-spacing: 0.08em;
-  font-size: 2.4rem;
+  font-size: 2.05rem;
   color: #e5ecf7;
   margin-bottom: 0.2rem;
 }
@@ -75,7 +76,7 @@ html, body, [data-testid="stAppViewContainer"] {
 .q-sub {
   font-family: 'Spectral', serif;
   color: var(--mist);
-  font-size: 1rem;
+  font-size: 0.92rem;
   margin-bottom: 1.2rem;
 }
 
@@ -83,7 +84,7 @@ div[data-testid="stVerticalBlock"]:has(.q-panel-block) {
   background: rgba(10, 15, 26, 0.65);
   border: 1px solid rgba(127, 178, 255, 0.2);
   border-radius: 18px;
-  padding: 24px 26px;
+  padding: 18px 18px;
   box-shadow: 0 0 30px rgba(46, 82, 140, 0.2);
 }
 
@@ -102,14 +103,14 @@ div[data-testid="stVerticalBlock"]:has(.q-panel-block) {
 .q-quote {
   font-family: 'Spectral', serif;
   color: #d7e3f7;
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 .q-label {
   font-family: 'Spectral', serif;
   color: var(--mist);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   margin-bottom: 0.4rem;
 }
 
