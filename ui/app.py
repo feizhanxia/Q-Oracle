@@ -48,6 +48,11 @@ st.markdown(
 html, body, [data-testid="stAppViewContainer"] {
   background: radial-gradient(1200px 600px at 20% 10%, #1a2333 0%, #0b0f18 45%, #05070c 100%);
   color: var(--ink);
+  min-height: 100vh;
+}
+
+[data-testid="stAppViewContainer"] > .main {
+  min-height: 100vh;
 }
 
 [data-testid="stHeader"] {
@@ -58,11 +63,16 @@ html, body, [data-testid="stAppViewContainer"] {
 [data-testid="stToolbar"] {
   visibility: hidden;
   height: 0;
+  display: none;
+}
+
+footer, div[data-testid="stDecoration"], .viewerBadge_container__2QSgA {
+  display: none !important;
 }
 
 .block-container {
-  padding: 1.5rem 1.2rem 2rem 1.2rem;
-  max-width: 920px;
+  padding: 1.2rem 0.6rem 1.8rem 0.6rem;
+  max-width: 980px;
 }
 
 .q-title {
@@ -84,7 +94,7 @@ div[data-testid="stVerticalBlock"]:has(.q-panel-block) {
   background: rgba(10, 15, 26, 0.65);
   border: 1px solid rgba(127, 178, 255, 0.2);
   border-radius: 18px;
-  padding: 18px 18px;
+  padding: 14px 14px;
   box-shadow: 0 0 30px rgba(46, 82, 140, 0.2);
 }
 
