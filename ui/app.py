@@ -135,10 +135,78 @@ div[data-testid="stVerticalBlock"]:has(.q-panel-block) {
   font-size: 0.9rem;
 }
 
+/* Inputs */
+div[data-testid="stTextInput"] input {
+  background: #1c212d !important;
+  color: #e8eef9 !important;
+  border: 1px solid rgba(127, 178, 255, 0.35) !important;
+}
+
+div[data-testid="stTextInput"] input:focus {
+  border-color: rgba(127, 178, 255, 0.8) !important;
+  box-shadow: 0 0 0 2px rgba(127, 178, 255, 0.25) !important;
+}
+
+div[data-testid="stTextInput"] input::placeholder {
+  color: #9aa7bd !important;
+}
+
+/* Buttons */
+div.stButton > button {
+  background: linear-gradient(90deg, #1f2a3a, #243348);
+  color: #e5ecf7;
+  border: 1px solid rgba(127, 178, 255, 0.35);
+  box-shadow: 0 0 12px rgba(127, 178, 255, 0.15);
+}
+
+div.stButton > button:hover {
+  border-color: rgba(127, 178, 255, 0.6);
+  box-shadow: 0 0 14px rgba(127, 178, 255, 0.25);
+}
+
+div.stButton > button:disabled {
+  opacity: 0.45;
+  border-color: rgba(150, 160, 180, 0.4);
+  box-shadow: none;
+}
+
+/* Code blocks / outputs */
+div[data-testid="stCodeBlock"] {
+  background: #111623 !important;
+  border: 1px solid rgba(127, 178, 255, 0.25) !important;
+  border-radius: 12px !important;
+}
+
+div[data-testid="stCodeBlock"] pre {
+  color: #e8eef9 !important;
+}
+
 div[data-testid="stTextInput"] {
   margin-top: 36px;
   margin-bottom: 42px;
 }
+
+/* Code blocks / outputs */
+div[data-testid="stCodeBlock"],
+pre,
+pre code {
+  background: #0f1320 !important;
+  color: #e8eef9 !important;
+}
+
+div[data-testid="stCodeBlock"] {
+  border: 1px solid rgba(127, 178, 255, 0.25) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  box-shadow: 0 0 14px rgba(30, 45, 70, 0.35) !important;
+}
+
+div[data-testid="stCodeBlock"] pre,
+div[data-testid="stCodeBlock"] code {
+  background: #0f1320 !important;
+  color: #e8eef9 !important;
+}
+
 
 
 </style>
