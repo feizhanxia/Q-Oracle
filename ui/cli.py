@@ -28,10 +28,10 @@ def main() -> None:
     provider = QRNGProvider()
     result = cast_hexagram(provider)
 
-    print(f"本卦: {result.base.name}")
+    print(f"本卦: {result.base.display_name}")
     print(render_hexagram(result.base.bits, moving_line=result.moving_line))
     print("")
-    print(f"之卦: {result.changed.name}")
+    print(f"之卦: {result.changed.display_name}")
     print(render_hexagram(result.changed.bits))
     print("")
     for idx, (source, data) in enumerate(provider.history, start=1):

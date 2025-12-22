@@ -38,7 +38,7 @@ _load_streamlit_secrets()
 
 if st.button("起卦"):
     result = cast_hexagram()
-    st.subheader(f"本卦：{result.base.name}")
+    st.subheader(f"本卦：{result.base.display_name}")
     st.code(render_hexagram(result.base.bits, moving_line=result.moving_line), language="text")
-    st.subheader(f"之卦：{result.changed.name}")
+    st.subheader(f"之卦：{result.changed.display_name}")
     st.code(render_hexagram(result.changed.bits), language="text")
