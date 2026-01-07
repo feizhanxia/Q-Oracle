@@ -25,6 +25,9 @@ class Settings:
     anu_key: str | None
     timeout_s: float
     allow_fallback: bool
+    llm_base_url: str
+    llm_model: str
+    llm_api_key: str | None
 
 
 def get_settings() -> Settings:
@@ -38,4 +41,7 @@ def get_settings() -> Settings:
         timeout_s=float(os.getenv("QRNG_TIMEOUT_S", "8")),
         allow_fallback=os.getenv("QRNG_ALLOW_FALLBACK", "false").lower()
         in {"1", "true", "yes", "on"},
+        llm_base_url=os.getenv("LLM_BASE_URL", "https://api.siliconflow.cn/v1"),
+        llm_model=os.getenv("LLM_MODEL", "deepseek-ai/DeepSeek-V3.2"),
+        llm_api_key=os.getenv("LLM_API_KEY"),
     )
