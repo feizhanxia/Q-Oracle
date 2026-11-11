@@ -28,11 +28,8 @@ CLI 和网页都支持项目根目录的 `.env`。网页也支持 `.streamlit/se
 | `LFDR_URL`、`ANU_URL` | 覆盖各随机服务地址 |
 | `QRNG_TIMEOUT_S` | 单次随机服务请求的超时秒数，默认 `8` |
 | `QRNG_ALLOW_FALLBACK` | 设为 `true` 时允许回退到系统随机，默认关闭 |
-| `TONGJI_API_KEY` | 首选模型的密钥。模型为 `Kimi-K3.1-Pro`，服务地址为 `https://agi.tongji.edu.cn/v1` |
-| `LLM_API_KEY` | 备用模型的密钥，沿用现有配置 |
-| `LLM_BASE_URL` | 备用服务地址，默认 `https://api.siliconflow.cn/v1` |
-| `LLM_MODEL` | 备用模型名称，默认 `deepseek-ai/DeepSeek-V3.2` |
-
-每轮 AI 解读先尝试已配置的同济模型。如果请求失败、流式回复中断或没有返回正文，程序会尝试已配置的备用模型，并以备用回复替换本轮未完成的输出。只配置 `LLM_API_KEY` 时直接使用备用服务。
+| `LLM_API_KEY` | 模型服务密钥，默认接入硅基流动 |
+| `LLM_BASE_URL` | 模型服务地址，默认 `https://api.siliconflow.cn/v1` |
+| `LLM_MODEL` | 模型名称，默认 `deepseek-ai/DeepSeek-V4.1-Flash` |
 
 `prompts/llm_prompt.txt` 是 AI 解读的提示词模板。程序按原模板填入占问、本卦、动爻和之卦，将其作为本次解读的系统消息。追问作为后续用户消息发送给所用的模型服务。

@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
 from config.settings import SettingsError
 from core.casting import CastingResult, cast_hexagram
 from core.hexagrams import Hexagram
-from core.llm import LLMError, build_llm_configs, stream_chat_completion
+from core.llm import LLMError, build_llm_config, stream_chat_completion
 from core.qrng import QRNGError
 
 logger = logging.getLogger(__name__)
@@ -48,19 +48,17 @@ def _format_prompt(result: CastingResult, question: str) -> str:
 
 
 def _write_reply(messages: list[dict[str, str]]) -> str:
-    configs = build_llm_configs()
+    config = build_llm_config()
     output = st.empty()
-    for config in configs:
-        try:
-            with output.container(), st.spinner(""):
-                reply = st.write_stream(stream_chat_completion(messages, config))
-            if isinstance(reply, str) and reply.strip():
-                return reply.strip()
-            raise LLMError("模型未返回回答正文")
-        except LLMError as exc:
-            output.empty()
-            logger.warning("AI model %s failed: %s", config.model, exc)
-    raise LLMError("All configured models failed")
+    try:
+        with output.container(), st.spinner(""):
+            reply = st.write_stream(stream_chat_completion(messages, config))
+        if isinstance(reply, str) and reply.strip():
+            return reply.strip()
+        raise LLMError("模型未返回回答正文")
+    except LLMError:
+        output.empty()
+        raise
 
 
 def _render_chat_area(result: CastingResult, question: str) -> None:

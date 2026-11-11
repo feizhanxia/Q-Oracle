@@ -14,14 +14,14 @@
   - 保留对话历史，支持多轮。
   - UI 与主题统一，加入黑客帝国风格细节（背景/装饰/字体颜色）。
 - 配置与密钥：
-  - 首选 `Kimi-K3.1-Pro`，使用 `https://agi.tongji.edu.cn/v1` 和 `TONGJI_API_KEY`。
-  - 备用服务沿用 `LLM_BASE_URL`、`LLM_MODEL`、`LLM_API_KEY`（默认硅基流动的 `deepseek-ai/DeepSeek-V3.2`）。密钥从 `.env` 或 `st.secrets` 读取。
+  - 默认接入硅基流动，模型为 `deepseek-ai/DeepSeek-V4.1-Flash`，服务地址为 `https://api.siliconflow.cn/v1`。
+  - `LLM_API_KEY` 从 `.env` 或 `st.secrets` 读取。
   - 提示词文件：`prompts/llm_prompt.txt`，支持 `{question}`、`{base_name}`、`{moving_line}` 和 `{changed_name}` 占位符。
 
 ## 验收标准
 - UI：主页面无破坏；新增“AI 解读”入口按钮；解读页深色主题、矩阵风细节，移动端可用。
 - 功能：能在起卦后点击进入解读；输入问题/追问可流式得到模型回复；对话历史可见。
-- 配置：`.env` 与 `st.secrets` 均可配置主备密钥；`LLM_BASE_URL` 和 `LLM_MODEL` 可覆盖备用服务。
+- 配置：`.env` 与 `st.secrets` 均可配置模型密钥；`LLM_BASE_URL` 和 `LLM_MODEL` 可覆盖默认服务。
 - 提示词：模板可独立编辑；调用时填入占问、本卦、动爻和之卦。
 - 错误处理：模型调用失败时有友好提示，不影响主起卦流程。
 
