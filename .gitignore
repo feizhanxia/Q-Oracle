@@ -1,6 +1,5 @@
 .env
-.streamlit/*
-!.streamlit/config.toml
+.streamlit/
 __pycache__/
 .pytest_cache/
 *.pyc
