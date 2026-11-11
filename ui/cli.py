@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import sys
 
+from config.settings import SettingsError
 from core.casting import cast_hexagram
-from core.qrng import QRNGProvider
+from core.qrng import QRNGError, QRNGProvider
 
 
 def _line_str(bit: int) -> str:
@@ -20,13 +22,17 @@ def render_hexagram(bits: tuple[int, ...], moving_line: int | None = None) -> st
     return "\n".join(lines)
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description="Q-Oracle CLI")
-    parser.add_argument("--once", action="store_true", help="cast once and exit")
-    args = parser.parse_args()
+    parser.add_argument("--once", action="store_true", help=argparse.SUPPRESS)
+    parser.parse_args()
 
-    provider = QRNGProvider()
-    result = cast_hexagram(provider)
+    try:
+        provider = QRNGProvider()
+        result = cast_hexagram(provider)
+    except (QRNGError, SettingsError) as exc:
+        print(f"起卦失败：{exc}", file=sys.stderr)
+        return 1
 
     print(f"本卦: {result.base.display_name}")
     print(render_hexagram(result.base.bits, moving_line=result.moving_line))
@@ -37,10 +43,8 @@ def main() -> None:
     for idx, (source, data) in enumerate(provider.history, start=1):
         print(f"随机源[{idx}] {source}: {data.hex()}")
 
-    if not args.once:
-        print("")
-        print("提示: 使用 --once 仅生成一次结果")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeAlias
+
+
+TrigramBits: TypeAlias = tuple[int, int, int]
 
 
 TRIGRAMS_BY_LINES = {
@@ -86,12 +90,18 @@ HEXAGRAM_NAMES = {
 class Hexagram:
     bits: tuple[int, int, int, int, int, int]  # bottom -> top
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.bits, tuple) or len(self.bits) != 6 or any(
+            type(bit) is not int or bit not in (0, 1) for bit in self.bits
+        ):
+            raise ValueError("A hexagram must contain exactly six integer bits (0 or 1)")
+
     @property
-    def lower_trigram(self) -> int:
+    def lower_trigram(self) -> TrigramBits:
         return (self.bits[0], self.bits[1], self.bits[2])
 
     @property
-    def upper_trigram(self) -> int:
+    def upper_trigram(self) -> TrigramBits:
         return (self.bits[3], self.bits[4], self.bits[5])
 
     @property
@@ -120,10 +130,12 @@ class Hexagram:
     def to_int(self) -> int:
         value = 0
         for idx, bit in enumerate(self.bits):
-            value |= (bit & 1) << idx
+            value |= bit << idx
         return value
 
     @staticmethod
     def from_int(value: int) -> "Hexagram":
+        if type(value) is not int or not 0 <= value < 64:
+            raise ValueError("Hexagram index must be an integer between 0 and 63")
         bits = tuple((value >> i) & 1 for i in range(6))
         return Hexagram(bits=bits)

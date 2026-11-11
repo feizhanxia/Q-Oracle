@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
+
+
+class SettingsError(ValueError):
+    pass
 
 
 def _load_env_file(path: Path) -> None:
@@ -28,20 +33,29 @@ class Settings:
     llm_base_url: str
     llm_model: str
     llm_api_key: str | None
+    tongji_api_key: str | None = None
 
 
 def get_settings() -> Settings:
     repo_root = Path(__file__).resolve().parents[1]
     _load_env_file(repo_root / ".env")
 
+    try:
+        timeout_s = float(os.getenv("QRNG_TIMEOUT_S", "8"))
+    except ValueError as exc:
+        raise SettingsError("QRNG_TIMEOUT_S 必须是大于 0 的有限数值") from exc
+    if not math.isfinite(timeout_s) or timeout_s <= 0:
+        raise SettingsError("QRNG_TIMEOUT_S 必须是大于 0 的有限数值")
+
     return Settings(
         lfdr_url=os.getenv("LFDR_URL", "https://lfdr.de/qrng_api/qrng"),
         anu_url=os.getenv("ANU_URL", "https://api.quantumnumbers.anu.edu.au"),
         anu_key=os.getenv("ANU_API_KEY"),
-        timeout_s=float(os.getenv("QRNG_TIMEOUT_S", "8")),
+        timeout_s=timeout_s,
         allow_fallback=os.getenv("QRNG_ALLOW_FALLBACK", "false").lower()
         in {"1", "true", "yes", "on"},
         llm_base_url=os.getenv("LLM_BASE_URL", "https://api.siliconflow.cn/v1"),
         llm_model=os.getenv("LLM_MODEL", "deepseek-ai/DeepSeek-V3.2"),
         llm_api_key=os.getenv("LLM_API_KEY"),
+        tongji_api_key=os.getenv("TONGJI_API_KEY"),
     )

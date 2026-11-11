@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 import os
-from typing import Iterable
-from urllib.error import URLError
+from dataclasses import dataclass
+from http.client import HTTPException
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -16,17 +15,20 @@ class QRNGError(RuntimeError):
 
 
 def _read_json(url: str, headers: dict[str, str] | None, timeout_s: float) -> dict:
-    req = Request(url, headers=headers or {})
     try:
+        req = Request(url, headers=headers or {})
         with urlopen(req, timeout=timeout_s) as resp:
-            payload = resp.read().decode("utf-8")
-    except URLError as exc:
+            payload = resp.read()
+    except (OSError, HTTPException, ValueError) as exc:
         raise QRNGError(str(exc)) from exc
 
     try:
-        return json.loads(payload)
-    except json.JSONDecodeError as exc:
-        raise QRNGError(f"Invalid JSON response: {payload[:200]}") from exc
+        data = json.loads(payload)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise QRNGError("Invalid JSON response") from exc
+    if not isinstance(data, dict):
+        raise QRNGError("Expected a JSON object")
+    return data
 
 
 @dataclass(frozen=True)
@@ -39,10 +41,11 @@ class LfdrClient:
         query = urlencode({"length": str(length), "format": "HEX"})
         url = f"{self.settings.lfdr_url}?{query}"
         data = _read_json(url, headers=None, timeout_s=self.settings.timeout_s)
-        if "qrn" not in data:
-            raise QRNGError(f"Unexpected LFDR response: {data}")
+        encoded = data.get("qrn")
+        if not isinstance(encoded, str):
+            raise QRNGError("Expected an LFDR hex string")
         try:
-            raw = bytes.fromhex(data["qrn"])
+            raw = bytes.fromhex(encoded)
         except ValueError as exc:
             raise QRNGError("LFDR hex decode failed") from exc
         if len(raw) != length:
@@ -64,15 +67,14 @@ class AnuClient:
         url = f"{self.settings.anu_url}?{query}"
         headers = {"x-api-key": self.settings.anu_key}
         data = _read_json(url, headers=headers, timeout_s=self.settings.timeout_s)
-        if "data" not in data or not isinstance(data["data"], Iterable):
-            raise QRNGError(f"Unexpected ANU response: {data}")
-        values = list(data["data"])
+        values = data.get("data")
+        if data.get("success", True) is not True or not isinstance(values, list):
+            raise QRNGError("Expected a successful ANU byte array response")
         if len(values) != length:
             raise QRNGError("ANU returned unexpected array length")
-        try:
-            return bytes(int(v) & 0xFF for v in values)
-        except (TypeError, ValueError) as exc:
-            raise QRNGError("ANU data decode failed") from exc
+        if any(type(value) is not int or not 0 <= value <= 255 for value in values):
+            raise QRNGError("ANU returned a value outside the uint8 format")
+        return bytes(values)
 
 
 class QRNGProvider:
@@ -88,6 +90,8 @@ class QRNGProvider:
         self.history: list[tuple[str, bytes]] = []
 
     def get_bytes(self, length: int) -> bytes:
+        if length < 1:
+            raise QRNGError("Length must be >= 1")
         errors: list[str] = []
         try:
             data = self._lfdr.get_bytes(length)
