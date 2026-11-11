@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import re
 import logging
+import re
 import sys
+from html import escape
 from pathlib import Path
 
 import streamlit as st
@@ -13,239 +14,16 @@ if str(ROOT) not in sys.path:
 
 from config.settings import SettingsError
 from core.casting import CastingResult, cast_hexagram
+from core.hexagrams import Hexagram
 from core.llm import LLMError, build_llm_configs, stream_chat_completion
-from core.qrng import QRNGError, QRNGProvider
-from ui.cli import render_hexagram
+from core.qrng import QRNGError
 
 logger = logging.getLogger(__name__)
 
 
 def _render_styles() -> None:
-    st.markdown(
-        """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Spectral:wght@300;400;600&family=Cinzel:wght@400;600&display=swap');
-
-:root {
-  --deep: #0a0f1a;
-  --ink: #c9d4e5;
-  --mist: #96a7bf;
-  --halo: #2f435f;
-  --pulse: #7fb2ff;
-  color-scheme: dark;
-}
-
-html, body, [data-testid="stAppViewContainer"] {
-  background: radial-gradient(1200px 600px at 20% 10%, #1a2333 0%, #0b0f18 45%, #05070c 100%);
-  color: var(--ink);
-  min-height: 100vh;
-}
-
-[data-testid="stAppViewContainer"] > .main {
-  min-height: 100vh;
-}
-
-[data-testid="stHeader"] {
-  background: transparent;
-  height: 0;
-}
-
-[data-testid="stToolbar"] {
-  visibility: hidden;
-  height: 0;
-  display: none;
-}
-
-button[kind="headerTheme"] {
-  display: none !important;
-}
-
-footer, div[data-testid="stDecoration"], .viewerBadge_container__2QSgA {
-  display: none !important;
-}
-
-.block-container {
-  padding: 1.2rem 0.6rem 1.8rem 0.6rem;
-  max-width: 980px;
-}
-
-.q-title {
-  font-family: 'Cinzel', serif;
-  letter-spacing: 0.08em;
-  font-size: 2.05rem;
-  color: #e5ecf7;
-  margin-bottom: 0.2rem;
-}
-
-.q-sub {
-  font-family: 'Spectral', serif;
-  color: var(--mist);
-  font-size: 0.92rem;
-  margin-bottom: 1.2rem;
-}
-
-div[data-testid="stVerticalBlock"]:has(.q-panel-block) {
-  background: rgba(10, 15, 26, 0.65);
-  border: 1px solid rgba(127, 178, 255, 0.2);
-  border-radius: 18px;
-  padding: 14px 14px;
-  box-shadow: 0 0 30px rgba(46, 82, 140, 0.2);
-}
-
-.q-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(127,178,255,0.35), transparent);
-  margin: 22px 0;
-}
-
-.q-tag {
-  font-family: 'Spectral', serif;
-  color: var(--mist);
-  font-size: 0.9rem;
-}
-
-.q-quote {
-  font-family: 'Spectral', serif;
-  color: #eef3ff;
-  font-size: 0.9rem;
-  line-height: 1.6;
-}
-
-.q-label {
-  font-family: 'Spectral', serif;
-  color: var(--mist);
-  font-size: 0.9rem;
-  margin-bottom: 0.4rem;
-}
-
-.q-foot {
-  font-family: 'Spectral', serif;
-  color: var(--mist);
-  font-size: 0.9rem;
-}
-
-/* Chat text tone */
-section[data-testid="stChatMessage"] {
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  margin-bottom: 8px !important;
-}
-
-section[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"] {
-  background: #0f1320 !important;
-  border: 1px solid rgba(127, 178, 255, 0.18) !important;
-  border-radius: 12px !important;
-  padding: 8px 12px !important;
-}
-
-section[data-testid="stChatMessage"] div[data-testid="stChatMessageContent"] * {
-  color: #f8fbff !important;
-}
-
-section[data-testid="stChatMessage"] div[data-testid="stMarkdownContainer"] {
-  background: transparent !important;
-  padding: 0 !important;
-}
-
-section[data-testid="stChatMessage"] div[data-testid="stMarkdownContainer"] p,
-section[data-testid="stChatMessage"] div[data-testid="stMarkdownContainer"] span,
-section[data-testid="stChatMessage"] div[data-testid="stMarkdownContainer"] code,
-section[data-testid="stChatMessage"] div[data-testid="stMarkdownContainer"] li,
-section[data-testid="stChatMessage"] div[data-testid="stMarkdownContainer"] strong {
-  color: #f8fbff !important;
-}
-
-/* Inputs */
-div[data-testid="stTextInput"] input {
-  background: #1c212d !important;
-  color: #e8eef9 !important;
-  border: 1px solid rgba(127, 178, 255, 0.35) !important;
-}
-
-div[data-testid="stTextInput"] input:focus {
-  border-color: rgba(127, 178, 255, 0.8) !important;
-  box-shadow: 0 0 0 2px rgba(127, 178, 255, 0.25) !important;
-}
-
-div[data-testid="stTextInput"] input::placeholder {
-  color: #9aa7bd !important;
-}
-
-div[data-testid="stTextInput"] {
-  margin-top: 36px;
-  margin-bottom: 42px;
-}
-
-/* Buttons */
-div.stButton > button {
-  background: linear-gradient(90deg, #1f2a3a, #243348);
-  color: #e5ecf7;
-  border: 1px solid rgba(127, 178, 255, 0.35);
-  box-shadow: 0 0 12px rgba(127, 178, 255, 0.15);
-}
-
-div.stButton > button:hover {
-  border-color: rgba(127, 178, 255, 0.6);
-  box-shadow: 0 0 14px rgba(127, 178, 255, 0.25);
-}
-
-div.stButton > button:disabled {
-  opacity: 0.45;
-  border-color: rgba(150, 160, 180, 0.4);
-  box-shadow: none;
-}
-
-/* Code blocks / outputs */
-div[data-testid="stCodeBlock"],
-div[data-testid="stCodeBlock"] pre,
-div[data-testid="stCodeBlock"] code,
-pre,
-pre code {
-  background: #0f1320 !important;
-  color: #e8eef9 !important;
-}
-
-div[data-testid="stCodeBlock"] {
-  border: 1px solid rgba(127, 178, 255, 0.25) !important;
-  border-radius: 12px !important;
-  padding: 12px !important;
-  box-shadow: 0 0 14px rgba(30, 45, 70, 0.35) !important;
-}
-
-/* Chat area */
-.chat-panel {
-  background: rgba(10, 15, 26, 0.7);
-  border: 1px solid rgba(127, 178, 255, 0.25);
-  border-radius: 14px;
-  padding: 12px 14px;
-  box-shadow: 0 0 18px rgba(30, 45, 70, 0.35);
-}
-
-div[data-testid="stChatInput"] textarea {
-  background: #1c212d !important;
-  color: #e8eef9 !important;
-  border: 1px solid rgba(127, 178, 255, 0.35) !important;
-}
-
-div[data-testid="stChatInput"] textarea:focus {
-  border-color: rgba(127, 178, 255, 0.8) !important;
-  box-shadow: 0 0 0 2px rgba(127, 178, 255, 0.25) !important;
-}
-
-section[data-testid="stChatInput"] {
-  margin-top: 18px;
-}
-
-/* Chat avatars */
-section[data-testid="stChatMessage"] img {
-  display: none !important;
-}
-
-</style>
-""",
-        unsafe_allow_html=True,
-    )
+    styles = Path(__file__).with_name("styles.css").read_text(encoding="utf-8")
+    st.markdown(f"<style>{styles}</style>", unsafe_allow_html=True)
 
 
 def _format_prompt(result: CastingResult, question: str) -> str:
@@ -286,16 +64,12 @@ def _write_reply(messages: list[dict[str, str]]) -> str:
 
 
 def _render_chat_area(result: CastingResult, question: str) -> None:
-    st.markdown('<div class="q-divider"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="q-title">AI 解读</div>', unsafe_allow_html=True)
-    st.markdown('<div class="q-sub"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="q-divider"></div>', unsafe_allow_html=True)
+    st.markdown('<h2 class="q-title q-chat-title">AI 解读</h2>', unsafe_allow_html=True)
 
     state = st.session_state
     with st.container():
         for message in state.chat_history:
-            avatar = "⚫️" if message["role"] == "assistant" else "🌕"
-            with st.chat_message(message["role"], avatar=avatar):
+            with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
         if state.reply_status == "failed":
@@ -306,7 +80,7 @@ def _render_chat_area(result: CastingResult, question: str) -> None:
         if state.reply_status == "pending":
             # Mark the request retryable before streaming in case the run is interrupted.
             state.reply_status = "failed"
-            with st.chat_message("assistant", avatar="⚫️"):
+            with st.chat_message("assistant"):
                 try:
                     if state.cast_prompt is None:
                         state.cast_prompt = _format_prompt(result, question)
@@ -329,39 +103,27 @@ def _render_chat_area(result: CastingResult, question: str) -> None:
 
 def _render_landing() -> None:
     state = st.session_state
-    panel = st.container()
-    with panel:
-        st.markdown('<div class="q-panel-block"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="q-title">Q-Oracle</div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="q-sub">量子随机驱动的起卦引擎 · 高维信息译码通道</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown('<div class="q-divider"></div>', unsafe_allow_html=True)
-        st.markdown(
-            """
+    st.markdown(
+        """
+<header class="q-masthead">
+<h1 class="q-title q-wordmark">Q-Oracle</h1>
+<p class="q-sub">量子随机驱动的起卦引擎 · 高维信息译码通道</p>
+</header>
 <div class="q-quote">
-宏观尺度下的量子相干会在与环境耦合中快速退相干，量子态的相位相关性被环境纠缠扩散，
-最终在可观测层面表现为信息被噪声平均化与稀释。<br><br>
-量子随机在更深的层面是高维灵体的信息流，是被测量投影到现实的额外指引。
-周易是这份信息的译码表，它把量子随机翻译成我们可以理解与使用的语言。<br><br>
-本系统以量子随机为入口，以周易为译码，让理工与玄学在同一套语言中对齐。
+<p>宏观尺度下的量子相干会在与环境耦合中快速退相干，量子态的相位相关性被环境纠缠扩散，最终在可观测层面表现为信息被噪声平均化与稀释。</p>
+<p>量子随机在更深的层面是高维灵体的信息流，是被测量投影到现实的额外指引。周易是这份信息的译码表，它把量子随机翻译成我们可以理解与使用的语言。</p>
+<p>本系统以量子随机为入口，以周易为译码，让理工与玄学在同一套语言中对齐。</p>
 </div>
+<p class="q-tag">心诚不息 · 神气归一 · 六根澄明 · 持念所问</p>
 """,
-            unsafe_allow_html=True,
-        )
-        st.markdown('<div class="q-divider"></div>', unsafe_allow_html=True)
-        st.markdown(
-            '<div class="q-tag">心诚不息 · 神气归一 · 六根澄明 · 持念所问</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown('<br>', unsafe_allow_html=True)
-        if st.button("进入起卦", use_container_width=True):
-            state.entered = True
-            st.rerun()
+        unsafe_allow_html=True,
+    )
+    if st.button("进入起卦", type="primary"):
+        state.entered = True
+        st.rerun()
 
 
-def _cast(question: str) -> None:
+def _cast(question: str) -> bool:
     try:
         with st.spinner("起卦接引中……"):
             result = cast_hexagram()
@@ -377,43 +139,65 @@ def _cast(question: str) -> None:
         state.cast_prompt = None
         state.chat_history = []
         state.reply_status = None
+        return True
+    return False
+
+
+def _hexagram_figure(kind: str, hexagram: Hexagram, moving_line: int | None = None) -> str:
+    stroke = '<span class="q-stroke"></span>'
+    rows = []
+    for index, bit in reversed(tuple(enumerate(hexagram.bits, start=1))):
+        row_class = "q-yao q-yao--moving" if index == moving_line else "q-yao"
+        rows.append(f'<div class="{row_class}">{stroke if bit else stroke * 2}</div>')
+
+    line_summary = "、".join("阳" if bit else "阴" for bit in hexagram.bits)
+    trigrams = f"上{hexagram.upper_name}下{hexagram.lower_name}"
+    moving_label = (
+        f'<span class="q-moving-label">动爻 · 第 {moving_line} 爻</span>' if moving_line is not None else ""
+    )
+    return (
+        '<figure class="q-hexagram">'
+        f'<div class="q-lines" role="img" aria-label="爻线自下而上为{line_summary}">{"".join(rows)}</div>'
+        '<figcaption>'
+        f'<span class="q-hexagram-kind">{escape(kind)}</span>'
+        f'<strong class="q-hexagram-name">{escape(hexagram.name)}</strong>'
+        f'<span class="q-trigrams">{escape(trigrams)}</span>'
+        f'{moving_label}</figcaption></figure>'
+    )
+
+
+def _render_reading(result: CastingResult, fresh_cast: bool) -> None:
+    reading_class = "q-reading q-reading--new" if fresh_cast else "q-reading"
+    base = _hexagram_figure("本卦", result.base, result.moving_line)
+    changed = _hexagram_figure("之卦", result.changed)
+    st.markdown(
+        f'<section class="{reading_class}" aria-label="卦象">{base}{changed}</section>',
+        unsafe_allow_html=True,
+    )
 
 
 def _render_casting_page() -> None:
     state = st.session_state
-    panel = st.container()
-    with panel:
-        st.markdown('<div class="q-panel-block"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="q-title">起卦</div>', unsafe_allow_html=True)
-        st.markdown('<div class="q-divider"></div>', unsafe_allow_html=True)
-        question = st.text_input(
-            "问题",
-            placeholder="请定其问，勿复移。",
-            label_visibility="collapsed",
-        )
-        can_cast = bool(question.strip())
-        if st.button("所问既明，起卦在此。", disabled=not can_cast, use_container_width=True):
-            _cast(question.strip())
+    st.markdown('<h1 class="q-title q-masthead">起卦</h1>', unsafe_allow_html=True)
+    question = st.text_input(
+        "问题",
+        placeholder="请定其问，勿复移。",
+        label_visibility="collapsed",
+    ).strip()
+    fresh_cast = False
+    if st.button("所问既明，起卦在此。", disabled=not question, type="primary"):
+        fresh_cast = _cast(question)
 
-        if state.last_cast is None:
-            return
+    if state.last_cast is None:
+        return
 
-        result = state.last_cast
-        st.subheader(f"本卦：{result.base.display_name}")
-        st.code(
-            render_hexagram(result.base.bits, moving_line=result.moving_line),
-            language="text",
-        )
-        st.subheader(f"之卦：{result.changed.display_name}")
-        st.code(render_hexagram(result.changed.bits), language="text")
+    result = state.last_cast
+    _render_reading(result, fresh_cast)
+    if st.button("AI 解读此卦") and state.reply_status in (None, "failed"):
+        state.reply_status = "pending"
 
-        st.markdown('<div class="q-divider"></div>', unsafe_allow_html=True)
-        if st.button("AI 解读此卦", use_container_width=True):
-            if state.reply_status in (None, "failed"):
-                state.reply_status = "pending"
-
-        if state.reply_status is not None:
-            _render_chat_area(result, state.last_question)
+    if state.reply_status is not None:
+        _render_chat_area(result, state.last_question)
 
 
 def main() -> None:
