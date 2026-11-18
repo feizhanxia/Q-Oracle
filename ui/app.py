@@ -16,9 +16,14 @@ from config.settings import SettingsError
 from core.casting import CastingResult, cast_hexagram
 from core.hexagrams import Hexagram
 from core.llm import LLMError, build_llm_config, stream_chat_completion
-from core.qrng import QRNGError
+from core.qrng import QRNGError, QRNGProvider
 
 logger = logging.getLogger(__name__)
+SOURCE_LABELS = {
+    "LFDR": "LFDR · 量子随机",
+    "ANU": "ANU Quantum Numbers · 量子随机",
+    "CLASSIC": "系统随机 · 回退",
+}
 
 
 def _render_styles() -> None:
@@ -124,7 +129,8 @@ def _render_landing() -> None:
 def _cast(question: str) -> bool:
     try:
         with st.spinner("起卦接引中……"):
-            result = cast_hexagram()
+            provider = QRNGProvider()
+            result = cast_hexagram(provider)
     except QRNGError as exc:
         logger.warning("Casting failed: %s", exc)
         st.error("暂时无法取得起卦所需的随机数，请稍后重新起卦。")
@@ -134,6 +140,8 @@ def _cast(question: str) -> bool:
         state = st.session_state
         state.last_cast = result
         state.last_question = question
+        # The last draw is the accepted byte, even if rejection sampling needed several draws.
+        state.last_cast_sources = (provider.history[0][0], provider.history[-1][0])
         state.cast_prompt = None
         state.chat_history = []
         state.reply_status = None
@@ -141,20 +149,25 @@ def _cast(question: str) -> bool:
     return False
 
 
-def _hexagram_figure(kind: str, hexagram: Hexagram, moving_line: int | None = None) -> str:
+def _hexagram_figure(kind: str, hexagram: Hexagram, moving_line: int, *, show_bits: bool) -> str:
     stroke = '<span class="q-stroke"></span>'
     rows = []
     for index, bit in reversed(tuple(enumerate(hexagram.bits, start=1))):
-        row_class = "q-yao q-yao--moving" if index == moving_line else "q-yao"
-        rows.append(f'<div class="{row_class}">{stroke if bit else stroke * 2}</div>')
+        polarity = "yang" if bit else "yin"
+        moving = " q-yao--moving" if index == moving_line else ""
+        digit = f'<span class="q-bit">{bit}</span>' if show_bits else ""
+        rows.append(
+            f'<div class="q-yao q-yao--{polarity}{moving}" style="--q-yao-order:{index - 1}">'
+            f'{digit}<div class="q-strokes">{stroke * 2}</div></div>'
+        )
 
     line_summary = "、".join("阳" if bit else "阴" for bit in hexagram.bits)
     trigrams = f"上{hexagram.upper_name}下{hexagram.lower_name}"
     moving_label = (
-        f'<span class="q-moving-label">动爻 · 第 {moving_line} 爻</span>' if moving_line is not None else ""
+        f'<span class="q-moving-label">动爻 · 第 {moving_line} 爻</span>' if show_bits else ""
     )
     return (
-        '<figure class="q-hexagram">'
+        f'<figure class="q-hexagram {"q-hexagram--base" if show_bits else "q-hexagram--changed"}">'
         f'<div class="q-lines" role="img" aria-label="爻线自下而上为{line_summary}">{"".join(rows)}</div>'
         '<figcaption>'
         f'<span class="q-hexagram-kind">{escape(kind)}</span>'
@@ -164,12 +177,22 @@ def _hexagram_figure(kind: str, hexagram: Hexagram, moving_line: int | None = No
     )
 
 
-def _render_reading(result: CastingResult, fresh_cast: bool) -> None:
+def _render_reading(
+    result: CastingResult, sources: tuple[str | None, str | None], fresh_cast: bool
+) -> None:
     reading_class = "q-reading q-reading--new" if fresh_cast else "q-reading"
-    base = _hexagram_figure("本卦", result.base, result.moving_line)
-    changed = _hexagram_figure("之卦", result.changed)
+    base = _hexagram_figure("本卦", result.base, result.moving_line, show_bits=True)
+    changed = _hexagram_figure("之卦", result.changed, result.moving_line, show_bits=False)
+    base_source, moving_source = (
+        escape(SOURCE_LABELS.get(source, "来源未记录") if source else "来源未记录")
+        for source in sources
+    )
     st.markdown(
-        f'<section class="{reading_class}" aria-label="卦象">{base}{changed}</section>',
+        f'<section class="{reading_class}" aria-label="卦象">{base}{changed}'
+        '<dl class="q-sources">'
+        f'<div><dt>本卦随机源</dt><dd>{base_source}</dd></div>'
+        f'<div><dt>动爻随机源</dt><dd>{moving_source}</dd></div>'
+        '</dl></section>',
         unsafe_allow_html=True,
     )
 
@@ -190,7 +213,7 @@ def _render_casting_page() -> None:
         return
 
     result = state.last_cast
-    _render_reading(result, fresh_cast)
+    _render_reading(result, state.last_cast_sources, fresh_cast)
     if st.button("AI 解读此卦") and state.reply_status in (None, "failed"):
         state.reply_status = "pending"
 
@@ -204,6 +227,7 @@ def main() -> None:
     state = st.session_state
     state.setdefault("entered", False)
     state.setdefault("last_cast", None)
+    state.setdefault("last_cast_sources", (None, None))
     state.setdefault("last_question", "")
     state.setdefault("cast_prompt", None)
     state.setdefault("chat_history", [])

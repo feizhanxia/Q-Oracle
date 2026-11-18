@@ -123,12 +123,56 @@ div.stButton > button:focus-visible {
 }
 
 .q-reading--new {
-  animation: q-appear 180ms ease-out both;
+  --q-mark-at: 560ms;
+  --q-compare-at: 690ms;
+  --q-flip-at: 875ms;
+  --q-finish-at: 1150ms;
 }
 
-@keyframes q-appear {
-  from { opacity: 0.35; transform: translateY(3px); }
+.q-reading--new .q-hexagram--base .q-yao {
+  animation: q-place-yao 180ms ease-out calc(var(--q-yao-order) * 72ms) both;
+}
+
+.q-reading--new .q-hexagram--base .q-yao--moving .q-stroke {
+  animation: q-mark-yao 130ms ease-out var(--q-mark-at) both;
+}
+
+.q-reading--new .q-hexagram--base .q-yao--moving::after,
+.q-reading--new .q-moving-label {
+  animation: q-reveal 130ms ease-out var(--q-mark-at) both;
+}
+
+.q-reading--new .q-hexagram--changed .q-lines {
+  animation: q-reveal 150ms ease-out var(--q-compare-at) both;
+}
+
+.q-reading--new .q-hexagram--changed .q-yao--moving .q-strokes {
+  animation: q-flip-yao 275ms ease-in-out var(--q-flip-at) both;
+}
+
+.q-reading--new .q-hexagram--changed figcaption,
+.q-reading--new .q-sources {
+  animation: q-reveal 130ms ease-out var(--q-finish-at) both;
+}
+
+@keyframes q-place-yao {
+  from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes q-mark-yao {
+  from { background-color: var(--q-paper); }
+  to { background-color: var(--q-vermilion); }
+}
+
+@keyframes q-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes q-flip-yao {
+  from { gap: var(--q-gap-before); }
+  to { gap: var(--q-gap); }
 }
 
 .q-hexagram {
@@ -148,14 +192,35 @@ div.stButton > button:focus-visible {
   display: grid;
   gap: 0.48rem;
   width: clamp(6.5rem, 25vw, 9rem);
+  padding-inline-start: 0.9rem;
 }
 
 .q-yao {
+  --q-gap: 0px;
+  --q-gap-before: 0.65rem;
   position: relative;
-  display: flex;
-  gap: 0.65rem;
   height: 0.26rem;
   margin-right: 0.8rem;
+}
+
+.q-yao--yin {
+  --q-gap: 0.65rem;
+  --q-gap-before: 0px;
+}
+
+.q-strokes {
+  display: flex;
+  gap: var(--q-gap);
+  height: 100%;
+}
+
+.q-bit {
+  position: absolute;
+  inset-inline-end: calc(100% + 0.36rem);
+  top: 50%;
+  transform: translateY(-50%);
+  font: 0.68rem/1 ui-monospace, monospace;
+  color: var(--q-muted);
 }
 
 .q-stroke {
@@ -163,7 +228,11 @@ div.stButton > button:focus-visible {
   flex: 1;
 }
 
-.q-yao--moving::after {
+.q-yao--moving .q-stroke {
+  background: var(--q-vermilion);
+}
+
+.q-hexagram--base .q-yao--moving::after {
   position: absolute;
   inset-inline-end: -0.8rem;
   top: 50%;
@@ -181,6 +250,31 @@ div.stButton > button:focus-visible {
   display: block;
   color: var(--q-muted);
   font: 0.85rem/1.55 var(--q-sans);
+}
+
+.q-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 2rem;
+  border-top: 1px solid var(--q-rule);
+  margin: 0;
+  padding: 0.8rem 0;
+  font: 0.78rem/1.65 var(--q-sans);
+}
+
+.q-sources div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+}
+
+.q-sources dt {
+  color: var(--q-muted);
+}
+
+.q-sources dd {
+  color: var(--q-paper);
+  margin: 0;
 }
 
 .q-hexagram-name {
@@ -234,8 +328,10 @@ div.stButton > button:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .q-reading--new, div.stButton > button:not(:disabled) {
-    animation: none;
+  .q-reading--new *,
+  .q-reading--new .q-yao--moving::after,
+  div.stButton > button:not(:disabled) {
+    animation: none !important;
     transition: none;
   }
 }
